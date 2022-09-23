@@ -30,6 +30,7 @@ struct AdditionalPlayerData
 	int sayTextLimitCount = 0;
 
 	uint64_t uid;
+	unsigned char* IPv6;
 };
 
 #pragma once

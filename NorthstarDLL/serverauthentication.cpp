@@ -344,6 +344,10 @@ bool ServerAuthenticationManager::CheckPlayerChatRatelimit(void* player)
 char* nextPlayerToken;
 uint64_t nextPlayerUid;
 
+//will store a copy of the latest IP we received a connectionless packet from
+//TBD need to test if somebody spams UDP packets if it is going to be accurate enough
+unsigned char nextPlayerIP[16] = {0};
+
 void* CBaseServer__ConnectClientHook(
 	void* server,
 	void* a2,
@@ -410,6 +414,7 @@ bool CBaseClient__ConnectHook(void* self, char* name, __int64 netchan_ptr_arg, c
 		g_ServerAuthenticationManager->m_additionalPlayerData.insert(std::make_pair(self, additionalData));
 
 		g_ServerAuthenticationManager->m_additionalPlayerData[self].uid = nextPlayerUid;
+		g_ServerAuthenticationManager->m_additionalPlayerData[self].IPv6 = nextPlayerIP;
 	}
 
 	return ret;
@@ -595,6 +600,8 @@ void CBaseClient__SendServerInfoHook(void* self)
 
 bool ProcessConnectionlessPacketHook(void* a1, netpacket_t* packet)
 {
+	memcpy(nextPlayerIP,packet->adr.ip,16);
+	
 	if (packet->adr.type == NA_IP &&
 		(!(packet->data[4] == 'N' && Cvar_net_datablock_enabled->GetBool()) || !Cvar_net_datablock_enabled->GetBool()))
 	{

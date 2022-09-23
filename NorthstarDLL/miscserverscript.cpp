@@ -66,6 +66,46 @@ SQRESULT SQ_IsDedicated(void* sqvm)
 	return SQRESULT_NOTNULL;
 }
 
+// string function NSGetPlayerIP( int playerIndex )
+SQRESULT SQ_GetPlayerIP(void* sqvm)
+{
+	int playerIndex = ServerSq_getinteger(sqvm, 1);
+	void* player = GetPlayerByIndex(playerIndex);
+
+	if (!g_ServerAuthenticationManager->m_additionalPlayerData.count(player))
+	{
+		ServerSq_pusherror(sqvm, fmt::format("Invalid playerindex {}", playerIndex).c_str());
+		return SQRESULT_ERROR;
+	}
+
+	std::string IPstr = "";
+	unsigned char *IPv6 = g_ServerAuthenticationManager->m_additionalPlayerData[player].IPv6;
+
+	//TODO: Add check if IPv6 or IPv4, bytes 11 and 10 are FF when IPv4 is used AND check type NA_NULL, NA_LOOPBACK, NA_IP
+
+	//TODO: Think about if putting all that stuff here is actually good or bad
+
+	//get IPv4 bytes
+	unsigned char *IP1 = IPv6+12;
+	unsigned char *IP2 = IPv6+13;
+	unsigned char *IP3 = IPv6+14;
+	unsigned char *IP4 = IPv6+15;
+
+	//make number a string so we can print it later in the console
+	std::string IP1char = std::to_string((uint8_t)*IP1);
+	std::string IP2char = std::to_string((uint8_t)*IP2);
+	std::string IP3char = std::to_string((uint8_t)*IP3);
+	std::string IP4char = std::to_string((uint8_t)*IP4);
+	std::string dot = ".";
+
+	//put all in one string
+	IPstr = IP1char + dot + IP2char + dot + IP3char + dot + IP4char;
+
+	//push it, requires cstring not std string
+	ServerSq_pushstring(sqvm,IPstr.c_str(), -1);
+	return SQRESULT_NOTNULL;
+}
+
 void InitialiseMiscServerScriptCommand(HMODULE baseAddress)
 {
 	g_ServerSquirrelManager->AddFuncRegistration(
@@ -73,4 +113,5 @@ void InitialiseMiscServerScriptCommand(HMODULE baseAddress)
 	g_ServerSquirrelManager->AddFuncRegistration("bool", "NSIsWritingPlayerPersistence", "", "", SQ_IsWritingPlayerPersistence);
 	g_ServerSquirrelManager->AddFuncRegistration("bool", "NSIsPlayerIndexLocalPlayer", "int playerIndex", "", SQ_IsPlayerIndexLocalPlayer);
 	g_ServerSquirrelManager->AddFuncRegistration("bool", "NSIsDedicated", "", "", SQ_IsDedicated);
+	g_ServerSquirrelManager->AddFuncRegistration("string", "NSGetPlayerIP", "int playerIndex", "", SQ_GetPlayerIP);
 }
